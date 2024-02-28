@@ -23,12 +23,14 @@ def load_ontonotesv5():
         ret[split_name] = Dataset.from_list(data)
     return DatasetDict(ret)
 
-
+'''
 if len(sys.argv) != 3:
     print('usage python %.py task model_size')
     sys.exit()
 
 task, model_size = sys.argv[1], sys.argv[2].lower()
+'''
+task, model_size = "ontonotesv5", "7b"
 print(f'handling task {task}')
 
 epochs = 10
@@ -37,13 +39,16 @@ learning_rate = 1e-4
 max_length = 64
 lora_r = 12
 if model_size == '7b':
-    model_id = 'NousResearch/Llama-2-7b-hf'
+    model_id = '../lm_model/Llama-2-7b-chat-hf'
 elif model_size == '13b':
     model_id = 'NousResearch/Llama-2-13b-hf'
 else:
     raise NotImplementedError
+
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-seqeval = evaluate.load("seqeval")
+tokenizer.pad_token = tokenizer.eos_token
+
+#seqeval = evaluate.load("seqeval")
 if task == 'wnut_17':
     ds = load_dataset("wnut_17")
     label2id = { "O": 0, "B-corporation": 1, "I-corporation": 2, "B-creative-work": 3, "I-creative-work": 4, "B-group": 5, "I-group": 6, "B-location": 7, "I-location": 8, "B-person": 9, "I-person": 10, "B-product": 11, "I-product": 12, }
@@ -57,9 +62,13 @@ else:
     raise NotImplementedError
 id2label = {v: k for k, v in label2id.items()}
 label_list = list(label2id.keys()) # ds["train"].features[f"ner_tags"].feature.names
+
+print("load model...")
 model = UnmaskingLlamaForTokenClassification.from_pretrained(
     model_id, num_labels=len(label2id), id2label=id2label, label2id=label2id
 ).bfloat16()
+
+print("PEFT ...")
 peft_config = LoraConfig(task_type=TaskType.TOKEN_CLS, inference_mode=False, r=lora_r, lora_alpha=32, lora_dropout=0.1)
 model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
@@ -114,7 +123,7 @@ def compute_metrics(p):
 
 
 training_args = TrainingArguments(
-    output_dir="my_awesome_ds_model",
+    output_dir="output",
     learning_rate=learning_rate,
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
@@ -133,7 +142,7 @@ trainer = Trainer(
     eval_dataset=tokenized_ds["test"],
     tokenizer=tokenizer,
     data_collator=data_collator,
-    compute_metrics=compute_metrics,
+    #compute_metrics=compute_metrics,
 )
 
 trainer.train()
