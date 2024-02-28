@@ -46,7 +46,7 @@ else:
     raise NotImplementedError
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-tokenizer.pad_token = tokenizer.eos_token
+#tokenizer.pad_token = tokenizer.eos_token
 
 #seqeval = evaluate.load("seqeval")
 if task == 'wnut_17':
