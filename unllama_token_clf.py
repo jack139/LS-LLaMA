@@ -3,6 +3,7 @@
 import sys
 import json
 import numpy as np
+import torch
 import evaluate
 from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoTokenizer
@@ -39,7 +40,7 @@ learning_rate = 1e-4
 max_length = 64
 lora_r = 12
 if model_size == '7b':
-    model_id = '../lm_model/Llama-2-7b-chat-hf'
+    model_id = '../lm_model/Llama-2-7b-hf'
 elif model_size == '13b':
     model_id = 'NousResearch/Llama-2-13b-hf'
 else:
@@ -65,7 +66,9 @@ label_list = list(label2id.keys()) # ds["train"].features[f"ner_tags"].feature.n
 
 print("load model...")
 model = UnmaskingLlamaForTokenClassification.from_pretrained(
-    model_id, num_labels=len(label2id), id2label=id2label, label2id=label2id
+    model_id, num_labels=len(label2id), id2label=id2label, label2id=label2id,
+    #torch_dtype=torch.float,
+    #device_map = "auto",
 ).bfloat16()
 
 print("PEFT ...")
